@@ -1,0 +1,7 @@
+
+
+[tasks.build]
+run="""
+  podman build {{ config_root}} \
+  -t claude-code:latest
+"""
