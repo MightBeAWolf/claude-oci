@@ -1,0 +1,44 @@
+name: Build and Publish OCI Container with Podman
+
+on:
+  push:
+    branches: ['main', 'master', 'test']
+
+jobs:
+  build-and-push:
+    runs-on: debian
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install podman
+
+      - name: Set up containers.conf for rootless Podman (optional but recommended)
+        run: |
+          mkdir -p $HOME/.config/containers
+          echo -e "[engine]\nrootless=true" > $HOME/.config/containers/containers.conf
+
+      - name: Log in to Gitea Container Registry
+        run: |
+          echo "${{ secrets.PACKAGE_REGISTRY_TOKEN }}" | \
+          podman login "gitea.local.wolfbox.dev" \
+            --username "${{ secrets.PACKAGE_REGISTRY_USERNAME }}" \
+            --password-stdin
+
+      - name: Build OCI Image
+        run: |
+          podman build -t ${{ env.IMAGE_NAME }}:latest -f ./Containerfile .
+        env:
+          IMAGE_NAME: gitea.local.wolfbox.dev/${{ github.repository }}
+
+      - name: Push Image to Gitea Registry
+        run: |
+          podman push ${{ env.IMAGE_NAME }}:latest
+        env:
+          IMAGE_NAME: gitea.local.wolfbox.dev/${{ github.repository }}
+
+
