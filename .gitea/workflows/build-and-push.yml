@@ -24,10 +24,10 @@ jobs:
 
       - name: Log in to Gitea Container Registry
         run: |
-          echo "${{ secrets.PACKAGE_REGISTRY_TOKEN }}" | \
           podman login "gitea.local.wolfbox.dev" \
             --username "${{ secrets.PACKAGE_REGISTRY_USERNAME }}" \
-            --password-stdin
+            --password-stdin \
+            <<< "${{ secrets.PACKAGE_REGISTRY_TOKEN }}"
 
       - name: Build OCI Image
         run: |
