@@ -14,8 +14,8 @@ jobs:
 
       - name: Install Podman
         run: |
-          sudo apt-get update
-          sudo apt-get -y install podman
+          apt-get update
+          apt-get -y install podman
 
       - name: Set up containers.conf for rootless Podman (optional but recommended)
         run: |
