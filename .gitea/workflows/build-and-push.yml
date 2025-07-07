@@ -17,25 +17,6 @@ jobs:
           apt-get update
           apt-get -y install podman
 
-      # - name: Configure rootless containers
-      #   run: |
-      #     mkdir -p $HOME/.local/share/containers/storage
-      #     mkdir -p $HOME/.config/containers
-          
-      #     cat > $HOME/.config/containers/storage.conf << EOF
-      #     [storage]
-      #     driver = "vfs"
-      #     runroot = "$HOME/.local/share/containers/storage"
-      #     graphroot = "$HOME/.local/share/containers/storage"
-      #     EOF
-          
-      #     cat > $HOME/.config/containers/containers.conf << EOF
-      #     [engine]
-      #     cgroup_manager = "cgroupfs"
-      #     events_logger = "file"
-      #     runtime = "runc"
-      #     EOF
-
       - name: Buildah Action
         id: build-image
         uses: redhat-actions/buildah-build@v2
@@ -44,6 +25,8 @@ jobs:
           tags: latest ${{ github.sha }}
           containerfiles: |
             ./Containerfile
+          extra-args: |
+            --storage-driver vfs
 
       - name: Log in to Gitea Container Registry
         uses: redhat-actions/podman-login@v1
