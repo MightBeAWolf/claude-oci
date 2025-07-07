@@ -17,10 +17,22 @@ jobs:
           apt-get update
           apt-get -y install podman
 
-      - name: Set up containers.conf for rootless Podman (optional but recommended)
+      - name: Configure rootless containers
         run: |
           mkdir -p $HOME/.config/containers
-          echo -e "[engine]\nrootless=true" > $HOME/.config/containers/containers.conf
+          cat > $HOME/.config/containers/storage.conf << EOF
+          [storage]
+          driver = "vfs"
+          runroot = "$HOME/.local/share/containers/storage"
+          graphroot = "$HOME/.local/share/containers/storage"
+          EOF
+          
+          cat > $HOME/.config/containers/containers.conf << EOF
+          [engine]
+          cgroup_manager = "cgroupfs"
+          events_logger = "file"
+          runtime = "runc"
+          EOF
 
       - name: Buildah Action
         id: build-image
