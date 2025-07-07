@@ -12,10 +12,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # - name: Install Podman
-      #   run: |
-      #     apt-get update
-      #     apt-get -y install podman
+      - name: Install Podman
+        run: |
+          apt-get update
+          apt-get -y install podman
 
       # - name: Configure rootless containers
       #   run: |
