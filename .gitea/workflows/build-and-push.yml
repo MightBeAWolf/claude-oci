@@ -26,7 +26,7 @@ jobs:
         id: build-image
         uses: redhat-actions/buildah-build@v2
         with:
-          image: ${{ env.IMAGE_NAME }}
+          image: ${{ github.server_url }}
           tags: latest ${{ github.sha }}
           containerfiles: |
             ./Containerfile
@@ -34,7 +34,7 @@ jobs:
       - name: Log in to Gitea Container Registry
         uses: redhat-actions/podman-login@v1
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ${{ github.server_url }}
           username: ${{ github.actor }}
           password: ${{ secrets.PACKAGE_REGISTRY_TOKEN }}
 
@@ -44,5 +44,5 @@ jobs:
         with:
           image: ${{ steps.build-image.outputs.image }}
           tags: ${{ steps.build-image.outputs.tags }}
-          registry: ${{ env.REGISTRY }}
+          registry: ${{ github.server_url }}
 
