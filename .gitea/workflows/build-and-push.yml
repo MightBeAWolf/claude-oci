@@ -38,10 +38,13 @@ jobs:
         id: build-image
         uses: redhat-actions/buildah-build@v2
         with:
-          image: ${{ github.server_url }}
+          image: ${{ env.IMAGE_NAME }}
           tags: latest ${{ github.sha }}
           containerfiles: |
             ./Containerfile
+          extra-args: |
+            --storage-driver=vfs
+            --storage-opt=vfs.imagestore=$HOME/.local/share/containers/storage
 
       - name: Log in to Gitea Container Registry
         uses: redhat-actions/podman-login@v1
