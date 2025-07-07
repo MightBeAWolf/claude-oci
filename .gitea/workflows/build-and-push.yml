@@ -22,23 +22,27 @@ jobs:
           mkdir -p $HOME/.config/containers
           echo -e "[engine]\nrootless=true" > $HOME/.config/containers/containers.conf
 
+      - name: Buildah Action
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ${{ env.IMAGE_NAME }}
+          tags: latest ${{ github.sha }}
+          containerfiles: |
+            ./Containerfile
+
       - name: Log in to Gitea Container Registry
-        run: |
-          podman login "192.168.41.9" \
-            --username "${{ secrets.PACKAGE_REGISTRY_USERNAME }}" \
-            --password-stdin \
-            <<< "${{ secrets.PACKAGE_REGISTRY_TOKEN }}"
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.PACKAGE_REGISTRY_TOKEN }}
 
-      - name: Build OCI Image
-        run: |
-          podman build -t ${{ env.IMAGE_NAME }}:latest -f ./Containerfile .
-        env:
-          IMAGE_NAME: gitea.local.wolfbox.dev/${{ github.repository }}
-
-      - name: Push Image to Gitea Registry
-        run: |
-          podman push ${{ env.IMAGE_NAME }}:latest
-        env:
-          IMAGE_NAME: gitea.local.wolfbox.dev/${{ github.repository }}
-
+      - name: Push to GitHub Container Repository
+        id: push-to-ghcr
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          tags: ${{ steps.build-image.outputs.tags }}
+          registry: ${{ env.REGISTRY }}
 
