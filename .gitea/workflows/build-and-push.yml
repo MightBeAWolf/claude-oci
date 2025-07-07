@@ -6,30 +6,30 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: debian-12-host
+    runs-on: debian-12
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # - name: Configure rootless containers
-      #   run: |
-      #     mkdir -p $HOME/.local/share/containers/storage
-      #     mkdir -p $HOME/.config/containers
+      - name: Configure rootless containers
+        run: |
+          mkdir -p $HOME/.local/share/containers/storage
+          mkdir -p $HOME/.config/containers
           
-      #     cat > $HOME/.config/containers/storage.conf << EOF
-      #     [storage]
-      #     driver = "vfs"
-      #     runroot = "$HOME/.local/share/containers/storage"
-      #     graphroot = "$HOME/.local/share/containers/storage"
-      #     EOF
+          cat > $HOME/.config/containers/storage.conf << EOF
+          [storage]
+          driver = "vfs"
+          runroot = "$HOME/.local/share/containers/storage"
+          graphroot = "$HOME/.local/share/containers/storage"
+          EOF
           
-      #     cat > $HOME/.config/containers/containers.conf << EOF
-      #     [engine]
-      #     cgroup_manager = "cgroupfs"
-      #     events_logger = "file"
-      #     runtime = "runc"
-      #     EOF
+          cat > $HOME/.config/containers/containers.conf << EOF
+          [engine]
+          cgroup_manager = "cgroupfs"
+          events_logger = "file"
+          runtime = "runc"
+          EOF
 
       - name: Build the OCI image using podman
         run: |
