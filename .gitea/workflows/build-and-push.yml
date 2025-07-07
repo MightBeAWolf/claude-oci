@@ -19,7 +19,9 @@ jobs:
 
       - name: Configure rootless containers
         run: |
+          mkdir -p $HOME/.local/share/containers/storage
           mkdir -p $HOME/.config/containers
+          
           cat > $HOME/.config/containers/storage.conf << EOF
           [storage]
           driver = "vfs"
@@ -34,17 +36,16 @@ jobs:
           runtime = "runc"
           EOF
 
-      - name: Buildah Action
-        id: build-image
-        uses: redhat-actions/buildah-build@v2
-        with:
-          image: ${{ github.event.repository.name }}
-          tags: latest ${{ github.sha }}
-          containerfiles: |
-            ./Containerfile
-          extra-args: |
-            --storage-driver=vfs
-            --storage-opt=vfs.imagestore=$HOME/.local/share/containers/storage
+      - name: Build with Buildah
+        run: |
+          buildah --storage-driver=vfs bud \
+            --isolation=chroot \
+            --cap-drop=all \
+            --security-opt=no-new-privileges \
+            -f ./Containerfile \
+            -t ${{ github.event.repository.name }}:latest \
+            -t ${{ github.event.repository.name }}:${{ github.sha }} \
+            .
 
       - name: Log in to Gitea Container Registry
         uses: redhat-actions/podman-login@v1
