@@ -12,40 +12,38 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Podman
-        run: |
-          apt-get update
-          apt-get -y install podman
+      # - name: Install Podman
+      #   run: |
+      #     apt-get update
+      #     apt-get -y install podman
 
-      - name: Configure rootless containers
-        run: |
-          mkdir -p $HOME/.local/share/containers/storage
-          mkdir -p $HOME/.config/containers
+      # - name: Configure rootless containers
+      #   run: |
+      #     mkdir -p $HOME/.local/share/containers/storage
+      #     mkdir -p $HOME/.config/containers
           
-          cat > $HOME/.config/containers/storage.conf << EOF
-          [storage]
-          driver = "vfs"
-          runroot = "$HOME/.local/share/containers/storage"
-          graphroot = "$HOME/.local/share/containers/storage"
-          EOF
+      #     cat > $HOME/.config/containers/storage.conf << EOF
+      #     [storage]
+      #     driver = "vfs"
+      #     runroot = "$HOME/.local/share/containers/storage"
+      #     graphroot = "$HOME/.local/share/containers/storage"
+      #     EOF
           
-          cat > $HOME/.config/containers/containers.conf << EOF
-          [engine]
-          cgroup_manager = "cgroupfs"
-          events_logger = "file"
-          runtime = "runc"
-          EOF
+      #     cat > $HOME/.config/containers/containers.conf << EOF
+      #     [engine]
+      #     cgroup_manager = "cgroupfs"
+      #     events_logger = "file"
+      #     runtime = "runc"
+      #     EOF
 
-      - name: Build with Buildah
-        run: |
-          buildah --storage-driver=vfs bud \
-            --isolation=chroot \
-            --cap-drop=all \
-            --security-opt=no-new-privileges \
-            -f ./Containerfile \
-            -t ${{ github.event.repository.name }}:latest \
-            -t ${{ github.event.repository.name }}:${{ github.sha }} \
-            .
+      - name: Buildah Action
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ${{ github.event.repository.name }}
+          tags: latest ${{ github.sha }}
+          containerfiles: |
+            ./Containerfile
 
       - name: Log in to Gitea Container Registry
         uses: redhat-actions/podman-login@v1
