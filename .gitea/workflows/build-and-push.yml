@@ -24,7 +24,7 @@ jobs:
 
       - name: Log in to Gitea Container Registry
         run: |
-          podman login "gitea.local.wolfbox.dev" \
+          podman login "192.168.41.9" \
             --username "${{ secrets.PACKAGE_REGISTRY_USERNAME }}" \
             --password-stdin \
             <<< "${{ secrets.PACKAGE_REGISTRY_TOKEN }}"
