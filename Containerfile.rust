@@ -1,0 +1,34 @@
+# syntax=docker/dockerfile:1
+
+FROM claude-code:latest
+
+LABEL org.opencontainers.image.source="https://docs.anthropic.com/en/docs/claude-code/setup"
+LABEL org.opencontainers.image.authors="OpenAI ChatGPT"
+LABEL org.opencontainers.image.description="Claude Code CLI with Rust/Cargo development environment"
+
+# Switch to root to install additional packages
+USER root
+
+# Install Rust build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        pkg-config \
+        libssl-dev \
+        && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Rust and Cargo
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
+    /root/.cargo/bin/rustup default stable && \
+    /root/.cargo/bin/rustup component add rustfmt clippy
+
+ENV PATH=/root/.cargo/bin:$PATH
+ENV CARGO_HOME=/root/.cargo
+ENV RUSTUP_HOME=/root/.rustup
+
+# Install common Rust development tools
+RUN cargo install cargo-watch cargo-expand cargo-audit
+
+# Entrypoint is inherited from base image
+# ENTRYPOINT ["claude"]

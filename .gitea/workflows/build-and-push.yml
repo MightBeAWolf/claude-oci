@@ -43,6 +43,13 @@ jobs:
           -t "${{ github.event.repository.name }}:${{ github.sha }}" \
           .
           
+      - name: Build the Rust OCI image using podman
+        run: |
+          podman build -f ./Containerfile.rust \
+          -t "${{ github.event.repository.name }}:rust" \
+          -t "${{ github.event.repository.name }}:rust-${{ github.sha }}" \
+          .
+          
       - name: Log in to Gitea Container Registry
         uses: redhat-actions/podman-login@v1
         with:

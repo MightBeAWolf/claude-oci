@@ -5,3 +5,11 @@ run="""
   podman build {{ config_root}} \
   -t claude-code:latest
 """
+
+[tasks.build-rust]
+depends = ["build"]
+run="""
+  podman build {{ config_root}} \
+  -f Containerfile.rust \
+  -t claude-code:rust
+"""
