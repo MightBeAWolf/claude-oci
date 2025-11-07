@@ -6,10 +6,18 @@ run="""
   -t claude-code:latest
 """
 
-[tasks.build-rust]
+[tasks.'build:rust']
 depends = ["build"]
 run="""
   podman build {{ config_root}} \
   -f Containerfile.rust \
   -t claude-code:rust
+"""
+
+[tasks.'build:rust-wasm']
+depends = ["build:rust"]
+run="""
+  podman build {{ config_root}} \
+  -f Containerfile.rust-wasm \
+  -t claude-code:rust-wasm
 """
