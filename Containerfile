@@ -19,12 +19,30 @@ RUN apt-get update && \
 
 ENV PATH=/root/.npm-global/bin:$PATH
 
-# 2. Install Claude Code (no sudo)
+# 2. Install mise-en-place
+RUN curl https://mise.run | sh
+
+ENV PATH=/root/.local/bin:$PATH
+
+# 2a. Configure mise globally
+RUN mkdir -p /root/.config/mise
+COPY config.toml /root/.config/mise/config.toml
+
+# 2b. Copy shell configuration and entrypoint
+COPY .bashrc /root/.bashrc
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# 3. Install Claude Code (no sudo)
 RUN npm install -g @anthropic-ai/claude-code
+
+# 4. Copy Claude Code agents
+RUN mkdir -p /root/.claude/commands
+COPY agents/mise.md /root/.claude/commands/
 
 WORKDIR /workspace
 
-# 3. Entrypoint to pass through arguments, preserving env
-ENTRYPOINT ["claude"]
+# 5. Entrypoint to pass through arguments, preserving env
+ENTRYPOINT ["/entrypoint.sh"]
 # CMD ["--help"]
 

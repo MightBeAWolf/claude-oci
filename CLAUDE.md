@@ -1,0 +1,116 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Repository Overview
+
+This repository provides OCI container images for running Claude Code CLI in containerized environments. It includes three image variants built on top of each other:
+
+1. **Base image** (`claude-code:latest`) - Debian Bookworm Slim + Node.js 20.x + Claude Code CLI
+2. **Rust image** (`claude-code:rust`) - Base + Rust toolchain + cargo development tools
+3. **Rust WASM image** (`claude-code:rust-wasm`) - Rust + wasm-pack + basic-http-server + custom `/webserver` agent
+
+## Build System
+
+### Building Images
+
+Use mise task runner (preferred) or Podman/Docker directly:
+
+```bash
+# Build base image
+mise run build
+
+# Build Rust variant (automatically builds base first)
+mise run build:rust
+
+# Build Rust + WASM variant (automatically builds base and rust first)
+mise run build:rust-wasm
+```
+
+Or with Podman directly:
+```bash
+podman build -t claude-code:latest .
+podman build -f Containerfile.rust -t claude-code:rust .
+podman build -f Containerfile.rust-wasm -t claude-code:rust-wasm .
+```
+
+### Image Architecture
+
+The images follow a layered architecture:
+- `Containerfile` → base image with Claude Code
+- `Containerfile.rust` → FROM base, adds Rust tooling
+- `Containerfile.rust-wasm` → FROM rust, adds WASM tools + custom agents
+
+The mise tasks enforce this dependency chain automatically.
+
+## Custom Claude Code Agents
+
+This repository includes custom Claude Code agents that provide specialized capabilities:
+
+### `/mise` Agent (all images)
+Available in the base image and all variants. Provides comprehensive assistance with:
+- Tool version management (installing, switching, upgrading runtimes)
+- Task execution and definition (TOML-based and file-based tasks)
+- Configuration management (creating and modifying mise.toml)
+- Environment setup and troubleshooting
+
+Location: `agents/mise.md` → `/root/.claude/commands/mise.md`
+
+### `/webserver` Agent (rust-wasm image only)
+Available only in the rust-wasm image. Provides specialized capabilities for:
+- Managing basic-http-server during WASM development
+- Starting, stopping, and checking server status
+- Port configuration and troubleshooting
+
+Location: `agents/webserver.md` → `/root/.claude/commands/webserver.md`
+
+### Adding New Agents
+
+When modifying or adding new agents:
+- Place agent definition files in `agents/` directory
+- Copy them to `/root/.claude/commands/` in the appropriate Containerfile
+- Agents are markdown files with YAML frontmatter describing their purpose
+- Use existing agents as templates for structure and patterns
+- Agents copied in the base image are inherited by all variants
+
+## CI/CD Pipeline
+
+The Gitea Actions workflow (`.gitea/workflows/build-and-push.yml`) automatically builds and publishes images on pushes to `main`, `master`, or `test` branches.
+
+Key workflow details:
+- Uses Podman with VFS storage driver for rootless container builds
+- Builds both base and rust images (rust-wasm not yet in CI)
+- Tags images with both `:latest`/`:rust` and commit SHA (`:$SHA`, `:rust-$SHA`)
+- Pushes to Gitea Container Registry using `PACKAGE_REGISTRY_TOKEN` secret
+
+If modifying the workflow:
+- Podman configuration uses custom `storage.conf` and `containers.conf` for rootless builds
+- The VFS storage driver is slower but more compatible with CI environments
+- Build steps reference `github.event.repository.name` for image naming
+
+## Testing Images
+
+After building, test images by mounting a project directory to `/workspace`:
+
+```bash
+# Test base image
+podman run -it --rm -v $(pwd):/workspace claude-code:latest
+
+# Test Rust image
+podman run -it --rm -v $(pwd):/workspace claude-code:rust
+
+# Test WASM image with port mapping (container port 4000 → host port 8080)
+podman run -it --rm -v $(pwd):/workspace -p 8080:4000 claude-code:rust-wasm
+```
+
+On SELinux systems (Fedora, RHEL, CentOS), add `:z` to volume mounts: `-v $(pwd):/workspace:z`
+
+## Important Notes
+
+- All images use `/workspace` as the working directory
+- The entrypoint is `/entrypoint.sh` which activates mise and launches Claude Code, so container arguments pass directly to Claude Code
+- **mise is pre-activated**: The mise environment is automatically activated via both the entrypoint wrapper and `.bashrc`, ensuring tool version management and tasks work in all shells
+- **mise global configuration**: Located at `/root/.config/mise/config.toml` with auto-install enabled and telemetry disabled
+- Environment paths are configured for npm global packages (`/root/.npm-global/bin`), mise (`/root/.local/bin`), and Rust cargo (`/root/.cargo/bin`)
+- The rust image includes development tools: cargo-watch, cargo-expand, cargo-audit
+- The WASM image's webserver agent expects basic-http-server to bind to `0.0.0.0:4000` by default

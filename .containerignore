@@ -1,0 +1,17 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.gitea
+
+# Documentation
+*.md
+!agents/*.md
+
+# Development tools
+mise.toml
+
+# Build artifacts
+*.log

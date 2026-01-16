@@ -12,6 +12,12 @@ Minimal Debian-based image with Claude Code CLI and Node.js 20.x.
 - Node.js 20.x
 - Claude Code CLI (`@anthropic-ai/claude-code`)
 - Git
+- mise (development environment manager)
+
+**Built-in Claude agents:**
+- `/mise` - Specialized agent for managing tools, tasks, and environments with mise
+
+**Note:** mise is pre-configured and automatically activated in all shells, with auto-install enabled for seamless tool management.
 
 ### Rust Development Image (`claude-code:rust`)
 Extends the base image with a complete Rust development environment.
@@ -28,6 +34,9 @@ Extends the Rust image with WebAssembly tooling for building WASM applications.
 **Additional tools:**
 - wasm-pack (WebAssembly package builder)
 - basic-http-server (static file server for testing WASM applications)
+
+**Additional Claude agents:**
+- `/webserver` - Specialized agent for managing basic-http-server during WASM development
 
 ## Building
 
@@ -97,6 +106,29 @@ podman run -it --rm \
   claude-code:latest
 ```
 
+### Persisting Configuration
+
+To persist Claude Code authentication and settings across container restarts, create a named volume for the configuration directory:
+
+```bash
+# Create a named volume for Claude configuration
+podman volume create claude-config
+
+# Use it when running the container
+podman run -it --rm \
+  -v claude-config:/root/.claude \
+  -v $(pwd):/workspace \
+  claude-code:latest
+
+# On SELinux systems
+podman run -it --rm \
+  -v claude-config:/root/.claude:z \
+  -v $(pwd):/workspace:z \
+  claude-code:latest
+```
+
+This avoids having to re-authenticate each time you start a new container.
+
 ### Running with Rust Environment
 ```bash
 podman run -it --rm \
@@ -149,8 +181,6 @@ Then from within Claude Code in the container, you can:
 # Or manually run the server
 basic-http-server -a 0.0.0.0:4000 ./pkg
 ```
-
-The `/webserver` slash command is a specialized Claude agent (built into the rust-wasm image) that helps manage the development server, including starting, stopping, and troubleshooting.
 
 ## CI/CD
 
