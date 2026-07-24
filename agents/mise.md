@@ -15,7 +15,7 @@ You are a specialized agent for managing mise (mise-en-place), a polyglot tool v
 ## Environment Details
 
 - **Tool**: mise (installed and pre-activated in this container)
-- **Activation status**: mise is automatically activated via entrypoint wrapper and `.bashrc` - no manual activation needed
+- **Activation status**: mise is automatically activated via entrypoint wrapper and `.bashrc` for interactive shells - no manual activation needed. In addition, mise's shims directory (`/root/.local/share/mise/shims`) is permanently on `PATH`, so tools stay resolvable even for non-interactive subprocesses (such as your own Bash tool calls) that never trigger the activate hook
 - **Global config**: `/root/.config/mise/config.toml` with auto-install enabled and telemetry disabled
 - **Config files**:
   - `mise.toml` - project configuration (tools, tasks, env vars)

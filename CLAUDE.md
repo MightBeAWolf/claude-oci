@@ -79,8 +79,9 @@ The Gitea Actions workflow (`.gitea/workflows/build-and-push.yml`) automatically
 
 Key workflow details:
 - Uses Podman with VFS storage driver for rootless container builds
-- Builds both base and rust images (rust-wasm not yet in CI)
-- Tags images with both `:latest`/`:rust` and commit SHA (`:$SHA`, `:rust-$SHA`)
+- Builds all three images: base, rust, and rust-wasm, with a `--version` smoke test after each build
+- Tags images with both `:latest`/`:rust`/`:rust-wasm` and commit SHA (`:$SHA`, `:rust-$SHA`, `:rust-wasm-$SHA`)
+- Local build/push tags are always `claude-code:*`, independent of this repo's own name, because `Containerfile.rust` and `Containerfile.rust-wasm` hardcode `FROM claude-code:...`
 - Pushes to Gitea Container Registry using `PACKAGE_REGISTRY_TOKEN` secret
 
 If modifying the workflow:
@@ -109,8 +110,9 @@ On SELinux systems (Fedora, RHEL, CentOS), add `:z` to volume mounts: `-v $(pwd)
 
 - All images use `/workspace` as the working directory
 - The entrypoint is `/entrypoint.sh` which activates mise and launches Claude Code, so container arguments pass directly to Claude Code
-- **mise is pre-activated**: The mise environment is automatically activated via both the entrypoint wrapper and `.bashrc`, ensuring tool version management and tasks work in all shells
+- **mise is pre-activated**: The mise environment is automatically activated via both the entrypoint wrapper and `.bashrc` for interactive shells, and mise's shims directory (`/root/.local/share/mise/shims`) is permanently on `PATH` via the base Containerfile. The shims are what matter for Claude Code itself: its Bash tool spawns non-interactive subprocesses that never source `.bashrc` or trigger the `mise activate` hook, so without the shims on `PATH`, tools installed mid-session (e.g. via `mise use`) would be invisible to subsequent tool calls
 - **mise global configuration**: Located at `/root/.config/mise/config.toml` with auto-install enabled and telemetry disabled
 - Environment paths are configured for npm global packages (`/root/.npm-global/bin`), mise (`/root/.local/bin`), and Rust cargo (`/root/.cargo/bin`)
 - The rust image includes development tools: cargo-watch, cargo-expand, cargo-audit
 - The WASM image's webserver agent expects basic-http-server to bind to `0.0.0.0:4000` by default
+- **Podman is included in every image** for nested builds (e.g. test-building this repo's own Containerfiles from inside the running container). It's configured via `containers/storage.conf` (`vfs` driver) and `containers/containers.conf` (`runc` runtime, `cgroupfs` manager) to match the CI runner's unprivileged setup — no `--privileged` or extra host capabilities needed

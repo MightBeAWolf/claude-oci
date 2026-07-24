@@ -10,7 +10,7 @@
 *.md
 !agents/*.md
 
-# Development tools
+# Host-side build orchestration (not needed inside the images)
 mise.toml
 
 # Build artifacts

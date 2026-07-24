@@ -2,8 +2,8 @@
 
 FROM claude-code:latest
 
-LABEL org.opencontainers.image.source="https://docs.anthropic.com/en/docs/claude-code/setup"
-LABEL org.opencontainers.image.authors="OpenAI ChatGPT"
+LABEL org.opencontainers.image.source="https://gitea.local.wolfbox.dev/gwolf/claude-oci"
+LABEL org.opencontainers.image.authors="tgwolf@salishseawolf.com"
 LABEL org.opencontainers.image.description="Claude Code CLI with Rust/Cargo development environment"
 
 # Switch to root to install additional packages
@@ -19,16 +19,19 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Rust and Cargo
+ARG RUST_VERSION=stable
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
-    /root/.cargo/bin/rustup default stable && \
+    /root/.cargo/bin/rustup default ${RUST_VERSION} && \
     /root/.cargo/bin/rustup component add rustfmt clippy
 
 ENV PATH=/root/.cargo/bin:$PATH
 ENV CARGO_HOME=/root/.cargo
 ENV RUSTUP_HOME=/root/.rustup
 
-# Install common Rust development tools
-RUN cargo install cargo-watch cargo-expand cargo-audit
+# Install common Rust development tools, then drop the crates.io registry/git
+# caches (only the built binaries in $CARGO_HOME/bin are needed at runtime)
+RUN cargo install --locked cargo-watch cargo-expand cargo-audit && \
+    rm -rf /root/.cargo/registry /root/.cargo/git
 
 # Entrypoint is inherited from base image
 # ENTRYPOINT ["claude"]

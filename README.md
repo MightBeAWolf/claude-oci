@@ -13,11 +13,12 @@ Minimal Debian-based image with Claude Code CLI and Node.js 20.x.
 - Claude Code CLI (`@anthropic-ai/claude-code`)
 - Git
 - mise (development environment manager)
+- Podman (for nested builds, e.g. testing this repo's own Containerfiles from inside the running image — see [Nested Podman builds](#nested-podman-builds))
 
 **Built-in Claude agents:**
 - `/mise` - Specialized agent for managing tools, tasks, and environments with mise
 
-**Note:** mise is pre-configured and automatically activated in all shells, with auto-install enabled for seamless tool management.
+**Note:** mise is pre-configured and automatically activated in all shells, with auto-install enabled for seamless tool management. Its shims directory is also always on `PATH`, so tools stay resolvable even for Claude Code's own non-interactive Bash tool calls.
 
 ### Rust Development Image (`claude-code:rust`)
 Extends the base image with a complete Rust development environment.
@@ -79,6 +80,18 @@ docker build -f Containerfile.rust -t claude-code:rust .
 # Build Rust + WASM variant
 docker build -f Containerfile.rust-wasm -t claude-code:rust-wasm .
 ```
+
+### Nested Podman builds
+
+Every image includes Podman, configured with the `vfs` storage driver and `runc` runtime (`containers/storage.conf`, `containers/containers.conf`) — the same unprivileged setup the Gitea CI runner uses. This means `podman build` works from inside a running container, e.g. to test-build this repo's own Containerfiles during development, without passing `--privileged` or any extra flags to the outer `podman run`/`docker run`:
+
+```bash
+podman run -it --rm -v $(pwd):/workspace claude-code:latest
+# then, inside the container:
+podman build -t claude-code:latest .
+```
+
+`vfs` trades away copy-on-write layer sharing for reliability in nested/unprivileged environments, so nested builds are slower and use more disk than a native overlay driver would.
 
 ## Usage
 
@@ -184,7 +197,7 @@ basic-http-server -a 0.0.0.0:4000 ./pkg
 
 ## CI/CD
 
-The repository includes a Gitea Actions workflow that automatically builds and publishes both images on pushes to `main`, `master`, or `test` branches.
+The repository includes a Gitea Actions workflow that automatically builds, smoke-tests, and publishes all three images on pushes to `main`, `master`, or `test` branches.
 
 Images are tagged with:
 - `:latest` / `:rust` / `:rust-wasm` - Latest build from main branch

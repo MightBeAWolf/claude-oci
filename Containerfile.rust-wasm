@@ -2,12 +2,13 @@
 
 FROM claude-code:rust
 
-LABEL org.opencontainers.image.source="https://docs.anthropic.com/en/docs/claude-code/setup"
-LABEL org.opencontainers.image.authors="OpenAI ChatGPT"
+LABEL org.opencontainers.image.source="https://gitea.local.wolfbox.dev/gwolf/claude-oci"
+LABEL org.opencontainers.image.authors="tgwolf@salishseawolf.com"
 LABEL org.opencontainers.image.description="Claude Code CLI with Rust/Cargo/WASM development environment"
 
 # Install WebAssembly and development server tools
-RUN cargo install wasm-pack basic-http-server
+RUN cargo install --locked wasm-pack basic-http-server && \
+    rm -rf /root/.cargo/registry /root/.cargo/git
 
 # Copy Claude Code agents for this image
 RUN mkdir -p /root/.claude/commands

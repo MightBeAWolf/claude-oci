@@ -21,14 +21,14 @@ jobs:
         run: |
           mkdir -p $HOME/.local/share/containers/storage
           mkdir -p $HOME/.config/containers
-          
+
           cat > $HOME/.config/containers/storage.conf << EOF
           [storage]
           driver = "vfs"
           runroot = "$HOME/.local/share/containers/storage"
           graphroot = "$HOME/.local/share/containers/storage"
           EOF
-          
+
           cat > $HOME/.config/containers/containers.conf << EOF
           [engine]
           cgroup_manager = "cgroupfs"
@@ -36,20 +36,40 @@ jobs:
           runtime = "runc"
           EOF
 
-      - name: Build the OCI image using podman
+      # Local tags are always "claude-code:*" regardless of this repo's own
+      # name, because Containerfile.rust and Containerfile.rust-wasm hardcode
+      # `FROM claude-code:...` — tagging with github.event.repository.name
+      # here would break those dependent builds.
+      - name: Build the base image
         run: |
           podman build -f ./Containerfile \
-          -t "${{ github.event.repository.name }}:latest" \
-          -t "${{ github.event.repository.name }}:${{ github.sha }}" \
+          -t claude-code:latest \
+          -t claude-code:${{ github.sha }} \
           .
-          
-      - name: Build the Rust OCI image using podman
+
+      - name: Smoke test the base image
+        run: podman run --rm claude-code:latest --version
+
+      - name: Build the Rust image
         run: |
           podman build -f ./Containerfile.rust \
-          -t "${{ github.event.repository.name }}:rust" \
-          -t "${{ github.event.repository.name }}:rust-${{ github.sha }}" \
+          -t claude-code:rust \
+          -t claude-code:rust-${{ github.sha }} \
           .
-          
+
+      - name: Smoke test the Rust image
+        run: podman run --rm claude-code:rust --version
+
+      - name: Build the Rust + WASM image
+        run: |
+          podman build -f ./Containerfile.rust-wasm \
+          -t claude-code:rust-wasm \
+          -t claude-code:rust-wasm-${{ github.sha }} \
+          .
+
+      - name: Smoke test the Rust + WASM image
+        run: podman run --rm claude-code:rust-wasm --version
+
       - name: Log in to Gitea Container Registry
         uses: redhat-actions/podman-login@v1
         with:
@@ -57,11 +77,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.PACKAGE_REGISTRY_TOKEN }}
 
-      - name: Push to GitHub Container Repository
-        id: push-to-ghcr
+      - name: Push base image
         uses: redhat-actions/push-to-registry@v2
         with:
-          image: ${{ steps.build-image.outputs.image }}
-          tags: ${{ steps.build-image.outputs.tags }}
+          image: claude-code
+          tags: latest ${{ github.sha }}
           registry: ${{ github.server_url }}
 
+      - name: Push Rust image
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: claude-code
+          tags: rust rust-${{ github.sha }}
+          registry: ${{ github.server_url }}
+
+      - name: Push Rust + WASM image
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: claude-code
+          tags: rust-wasm rust-wasm-${{ github.sha }}
+          registry: ${{ github.server_url }}
