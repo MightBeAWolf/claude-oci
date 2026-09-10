@@ -159,21 +159,48 @@ podman run -it --rm claude-code:latest --help
 #### Run Claude Code in current directory
 ```bash
 podman run -it --rm \
-  -v $(pwd):/workspace \
+  --hostname claude-code \
+  --userns=keep-id \
+  --init \
+  --security-opt=no-new-privileges \
+  --cap-drop=ALL \
+  -v "${PWD}:/workspace:z" \
+  -v "claude-home:/root" \
+  -w /workspace \
+  -e TERM -e COLORTERM \
+  --tz local \
   claude-code:latest
 ```
 
 #### Work on a Rust project
 ```bash
 podman run -it --rm \
-  -v $(pwd):/workspace \
+  --hostname claude-code \
+  --userns=keep-id \
+  --init \
+  --security-opt=no-new-privileges \
+  --cap-drop=ALL \
+  -v "${PWD}:/workspace:z" \
+  -v "claude-home:/root" \
+  -w /workspace \
+  -e TERM -e COLORTERM \
+  --tz local \
   claude-code:rust
 ```
 
 #### Work on a Rust WebAssembly project
 ```bash
 podman run -it --rm \
-  -v $(pwd):/workspace \
+  --hostname claude-code \
+  --userns=keep-id \
+  --init \
+  --security-opt=no-new-privileges \
+  --cap-drop=ALL \
+  -v "${PWD}:/workspace:z" \
+  -v "claude-home:/root" \
+  -w /workspace \
+  -e TERM -e COLORTERM \
+  --tz local \
   claude-code:rust-wasm
 ```
 
@@ -181,7 +208,16 @@ podman run -it --rm \
 ```bash
 # Map container port 4000 to host port 8080
 podman run -it --rm \
-  -v $(pwd):/workspace \
+  --hostname claude-code \
+  --userns=keep-id \
+  --init \
+  --security-opt=no-new-privileges \
+  --cap-drop=ALL \
+  -v "${PWD}:/workspace:z" \
+  -v "claude-home:/root" \
+  -w /workspace \
+  -e TERM -e COLORTERM \
+  --tz local \
   -p 8080:4000 \
   claude-code:rust-wasm
 ```
