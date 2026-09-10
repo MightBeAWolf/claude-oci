@@ -151,6 +151,13 @@ podman run -it --rm \
 
 ### Examples
 
+The examples below add some hardening and quality-of-life flags:
+
+- `--init` reaps zombie processes; `--security-opt=no-new-privileges` and `--cap-drop=ALL` shrink the container's privileges.
+- **No `--userns=keep-id`.** With rootless Podman, container UID 0 already maps to your host user, so files written to the `:z` bind mount land owned by *you*, not `root`. Adding `--userns=keep-id` instead runs the process as your non-root UID, which this image (built entirely as `root`, home under `/root`) can't start under.
+- `-v "claude-home:/root/.claude"` persists authentication between runs. Podman seeds the named volume from the image on first use, owned by container UID 0 (your host user under rootless Podman). Run the container the same way each time; if you ever change the UID mapping (e.g. add `--userns=keep-id` or use `sudo podman`), delete the volume with `podman volume rm claude-home` and let it re-seed, or the old file ownership will trigger `EACCES` on `/root/.claude`.
+- If you rely on [nested Podman builds](#nested-podman-builds), drop `--cap-drop=ALL` and `--security-opt=no-new-privileges` — rootless `podman build` needs the setuid `newuidmap`/`newgidmap` helpers.
+
 #### Get help
 ```bash
 podman run -it --rm claude-code:latest --help
@@ -160,12 +167,11 @@ podman run -it --rm claude-code:latest --help
 ```bash
 podman run -it --rm \
   --hostname claude-code \
-  --userns=keep-id \
   --init \
   --security-opt=no-new-privileges \
   --cap-drop=ALL \
   -v "${PWD}:/workspace:z" \
-  -v "claude-home:/root" \
+  -v "claude-home:/root/.claude" \
   -w /workspace \
   -e TERM -e COLORTERM \
   --tz local \
@@ -176,12 +182,11 @@ podman run -it --rm \
 ```bash
 podman run -it --rm \
   --hostname claude-code \
-  --userns=keep-id \
   --init \
   --security-opt=no-new-privileges \
   --cap-drop=ALL \
   -v "${PWD}:/workspace:z" \
-  -v "claude-home:/root" \
+  -v "claude-home:/root/.claude" \
   -w /workspace \
   -e TERM -e COLORTERM \
   --tz local \
@@ -192,12 +197,11 @@ podman run -it --rm \
 ```bash
 podman run -it --rm \
   --hostname claude-code \
-  --userns=keep-id \
   --init \
   --security-opt=no-new-privileges \
   --cap-drop=ALL \
   -v "${PWD}:/workspace:z" \
-  -v "claude-home:/root" \
+  -v "claude-home:/root/.claude" \
   -w /workspace \
   -e TERM -e COLORTERM \
   --tz local \
@@ -209,12 +213,11 @@ podman run -it --rm \
 # Map container port 4000 to host port 8080
 podman run -it --rm \
   --hostname claude-code \
-  --userns=keep-id \
   --init \
   --security-opt=no-new-privileges \
   --cap-drop=ALL \
   -v "${PWD}:/workspace:z" \
-  -v "claude-home:/root" \
+  -v "claude-home:/root/.claude" \
   -w /workspace \
   -e TERM -e COLORTERM \
   --tz local \
