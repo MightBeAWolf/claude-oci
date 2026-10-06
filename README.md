@@ -236,7 +236,10 @@ basic-http-server -a 0.0.0.0:4000 ./pkg
 
 ## CI/CD
 
-The repository includes a Gitea Actions workflow that automatically builds, smoke-tests, and publishes all three images on pushes to `main`, `master`, or `test` branches.
+The repository includes two CI workflows, each with a `lint` job that checks all three Containerfiles with [hadolint](https://github.com/hadolint/hadolint) (`.hadolint.yaml`) on every push and pull request, followed by a `build-and-push` job — gated on `lint` passing and push events only — that builds, smoke-tests, and publishes all three images on pushes to `main`, `master`, or `test` branches:
+
+- **Gitea Actions** (`.gitea/workflows/build-and-push.yml`) publishes to the Gitea Container Registry.
+- **GitHub Actions** (`.github/workflows/build-and-push.yml`) publishes to the GitHub Container Registry (`ghcr.io`).
 
 Images are tagged with:
 - `:latest` / `:rust` / `:rust-wasm` - Latest build from main branch

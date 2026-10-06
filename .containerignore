@@ -5,6 +5,8 @@
 
 # CI/CD
 .gitea
+.github
+.hadolint.yaml
 
 # Documentation
 *.md

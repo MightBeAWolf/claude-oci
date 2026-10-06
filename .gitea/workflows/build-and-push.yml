@@ -3,9 +3,34 @@ name: Build and Publish OCI Container with Podman
 on:
   push:
     branches: ['main', 'master', 'test']
+  pull_request:
+    branches: ['main', 'master', 'test']
 
 jobs:
+  lint:
+    name: Lint Containerfiles
+    runs-on: debian-12
+    strategy:
+      matrix:
+        containerfile: [Containerfile, Containerfile.rust, Containerfile.rust-wasm]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install hadolint
+        run: |
+          curl -sL -o /usr/local/bin/hadolint \
+            https://github.com/hadolint/hadolint/releases/download/v2.15.1/hadolint-Linux-x86_64
+          chmod +x /usr/local/bin/hadolint
+
+      - name: Lint ${{ matrix.containerfile }}
+        run: hadolint --config .hadolint.yaml ${{ matrix.containerfile }}
+
   build-and-push:
+    name: Build and push images
+    needs: lint
+    if: github.event_name == 'push'
     runs-on: debian-12
 
     steps:

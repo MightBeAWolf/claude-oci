@@ -75,17 +75,24 @@ When modifying or adding new agents:
 
 ## CI/CD Pipeline
 
-The Gitea Actions workflow (`.gitea/workflows/build-and-push.yml`) automatically builds and publishes images on pushes to `main`, `master`, or `test` branches.
+Two parallel workflows, kept in sync by convention, each with a `lint` job followed by a `build-and-push` job:
+
+- **Gitea Actions** (`.gitea/workflows/build-and-push.yml`) — uses Podman, pushes to the Gitea Container Registry.
+- **GitHub Actions** (`.github/workflows/build-and-push.yml`) — uses Docker/Buildx, pushes to `ghcr.io`.
+
+Both trigger on push and pull_request to `main`, `master`, or `test`.
 
 Key workflow details:
-- Uses Podman with VFS storage driver for rootless container builds
-- Builds all three images: base, rust, and rust-wasm, with a `--version` smoke test after each build
-- Tags images with both `:latest`/`:rust`/`:rust-wasm` and commit SHA (`:$SHA`, `:rust-$SHA`, `:rust-wasm-$SHA`)
-- Local build/push tags are always `claude-code:*`, independent of this repo's own name, because `Containerfile.rust` and `Containerfile.rust-wasm` hardcode `FROM claude-code:...`
-- Pushes to Gitea Container Registry using `PACKAGE_REGISTRY_TOKEN` secret
+- `lint` job runs [hadolint](https://github.com/hadolint/hadolint) against all three Containerfiles (matrix job), using the shared `.hadolint.yaml` config. Runs on every push and pull request.
+- `build-and-push` job `needs: lint` and is gated to `github.event_name == 'push'` (no publishing from pull requests).
+- Builds all three images in dependency order: base, rust, and rust-wasm, with a `--version` smoke test after each build, before any registry login or push.
+- Tags images with both `:latest`/`:rust`/`:rust-wasm` and commit SHA (`:$SHA`, `:rust-$SHA`, `:rust-wasm-$SHA`).
+- Local build tags are always `claude-code:*`, independent of this repo's own name, because `Containerfile.rust` and `Containerfile.rust-wasm` hardcode `FROM claude-code:...`. The GitHub workflow builds locally with Buildx's `load: true` to preserve this, then separately tags/pushes the `ghcr.io/<owner>/<repo>` (lowercased) names.
+- Gitea pushes using the `PACKAGE_REGISTRY_TOKEN` secret; GitHub pushes using the built-in `GITHUB_TOKEN` (requires the repo's Actions settings to grant it package write access).
 
-If modifying the workflow:
-- Podman configuration uses custom `storage.conf` and `containers.conf` for rootless builds
+If modifying either workflow:
+- Keep the `lint` → `build-and-push` structure and the `.hadolint.yaml` ignore list in sync between both files unless there's a reason for them to diverge.
+- Podman configuration (Gitea runner) uses custom `storage.conf` and `containers.conf` for rootless builds
 - The VFS storage driver is slower but more compatible with CI environments
 - Build steps reference `github.event.repository.name` for image naming
 

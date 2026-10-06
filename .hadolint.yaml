@@ -1,0 +1,7 @@
+ignored:
+  # Package versions are intentionally left floating; mise and npm manage
+  # actual tool versions, not apt.
+  - DL3008
+  # RUN steps use the default /bin/sh; there's no SHELL directive switching to
+  # bash, so pipefail isn't actionable here.
+  - DL4006
