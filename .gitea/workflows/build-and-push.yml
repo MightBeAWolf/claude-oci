@@ -18,11 +18,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install hadolint
-        run: |
-          curl -sL -o /usr/local/bin/hadolint \
-            https://github.com/hadolint/hadolint/releases/download/v2.15.1/hadolint-Linux-x86_64
-          chmod +x /usr/local/bin/hadolint
+      - name: Install mise tools
+        uses: jdx/mise-action@v2
 
       - name: Lint ${{ matrix.containerfile }}
         run: hadolint --config .hadolint.yaml ${{ matrix.containerfile }}

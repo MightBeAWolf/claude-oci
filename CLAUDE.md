@@ -84,11 +84,14 @@ Both trigger on push and pull_request to `main`, `master`, or `test`.
 
 Key workflow details:
 - `lint` job runs [hadolint](https://github.com/hadolint/hadolint) against all three Containerfiles (matrix job), using the shared `.hadolint.yaml` config. Runs on every push and pull request.
+- hadolint's version is declared in `mise.toml` (`[tools] hadolint`), installed in CI via `jdx/mise-action@v2` — bump the version there, not in the workflow files.
 - `build-and-push` job `needs: lint` and is gated to `github.event_name == 'push'` (no publishing from pull requests).
 - Builds all three images in dependency order: base, rust, and rust-wasm, with a `--version` smoke test after each build, before any registry login or push.
 - Tags images with both `:latest`/`:rust`/`:rust-wasm` and commit SHA (`:$SHA`, `:rust-$SHA`, `:rust-wasm-$SHA`).
 - Local build tags are always `claude-code:*`, independent of this repo's own name, because `Containerfile.rust` and `Containerfile.rust-wasm` hardcode `FROM claude-code:...`. The GitHub workflow builds locally with Buildx's `load: true` to preserve this, then separately tags/pushes the `ghcr.io/<owner>/<repo>` (lowercased) names.
 - Gitea pushes using the `PACKAGE_REGISTRY_TOKEN` secret; GitHub pushes using the built-in `GITHUB_TOKEN` (requires the repo's Actions settings to grant it package write access).
+
+Whenever a Containerfile changes (`Containerfile`, `Containerfile.rust`, `Containerfile.rust-wasm`), run hadolint locally before committing, mirroring the CI `lint` job: `mise install` (installs the version pinned in `mise.toml`) then `hadolint --config .hadolint.yaml <file>` for each changed file. Fix findings or extend `.hadolint.yaml`'s `ignored` list with a reasoning comment, rather than letting CI catch it.
 
 If modifying either workflow:
 - Keep the `lint` → `build-and-push` structure and the `.hadolint.yaml` ignore list in sync between both files unless there's a reason for them to diverge.

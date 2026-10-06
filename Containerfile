@@ -11,7 +11,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y --no-install-recommends slirp4netns curl ca-certificates git && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
+    apt-get install -y --no-install-recommends nodejs && \
     # set npm prefix to avoid sudo
     mkdir -p /root/.npm-global && \
     npm config set prefix /root/.npm-global && \
@@ -41,8 +41,7 @@ RUN chmod +x /entrypoint.sh
 ARG CLAUDE_CODE_VERSION=latest
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
-# 4. Copy Claude Code agents
-RUN mkdir -p /root/.claude/commands
+# 4. Copy Claude Code agents (COPY creates the destination directory)
 COPY agents/mise.md /root/.claude/commands/
 
 # 5. Install Podman for nested image builds (e.g. testing this repo's own

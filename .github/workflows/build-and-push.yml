@@ -17,11 +17,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install mise tools
+        uses: jdx/mise-action@v2
+
       - name: Lint ${{ matrix.containerfile }}
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: ${{ matrix.containerfile }}
-          config: .hadolint.yaml
+        run: hadolint --config .hadolint.yaml ${{ matrix.containerfile }}
 
   build-and-push:
     name: Build and push images

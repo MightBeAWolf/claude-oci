@@ -1,4 +1,5 @@
-
+[tools]
+hadolint="latest"
 
 [tasks.build]
 run="""

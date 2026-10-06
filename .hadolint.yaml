@@ -5,3 +5,11 @@ ignored:
   # RUN steps use the default /bin/sh; there's no SHELL directive switching to
   # bash, so pipefail isn't actionable here.
   - DL4006
+  # `FROM claude-code:latest`/`:rust` are intentional local build-chain tags
+  # (Containerfile.rust -> Containerfile.rust-wasm), not floating registry
+  # pulls — see "Image Architecture" in CLAUDE.md.
+  - DL3007
+  # These images run entirely as root by design (see README/CLAUDE.md); no
+  # USER switch is expected.
+  - DL3002
+  - DL3066
