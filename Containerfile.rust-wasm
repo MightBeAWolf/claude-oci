@@ -6,8 +6,10 @@ LABEL org.opencontainers.image.source="https://gitea.local.wolfbox.dev/gwolf/cla
 LABEL org.opencontainers.image.authors="tgwolf@salishseawolf.com"
 LABEL org.opencontainers.image.description="Claude Code CLI with Rust/Cargo/WASM development environment"
 
-# Install WebAssembly and development server tools
-RUN cargo install --locked wasm-pack basic-http-server && \
+# Install WebAssembly and development server tools via cargo-binstall
+# (already installed in the rust image) for prebuilt binaries where upstream
+# publishes them, instead of always compiling from source
+RUN cargo binstall --no-confirm wasm-pack basic-http-server && \
     rm -rf /root/.cargo/registry /root/.cargo/git
 
 # Copy Claude Code agents for this image

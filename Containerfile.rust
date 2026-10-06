@@ -28,9 +28,15 @@ ENV PATH=/root/.cargo/bin:$PATH
 ENV CARGO_HOME=/root/.cargo
 ENV RUSTUP_HOME=/root/.rustup
 
+# Install cargo-binstall (itself a prebuilt binary, no compilation), then use
+# it for the dev tools below: it fetches prebuilt binaries where upstream
+# publishes them and only falls back to compiling from source when it can't,
+# which is far faster than a plain `cargo install` for tools that do.
+RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+
 # Install common Rust development tools, then drop the crates.io registry/git
 # caches (only the built binaries in $CARGO_HOME/bin are needed at runtime)
-RUN cargo install --locked cargo-watch cargo-expand cargo-audit && \
+RUN cargo binstall --no-confirm cargo-watch cargo-expand cargo-audit && \
     rm -rf /root/.cargo/registry /root/.cargo/git
 
 # Entrypoint is inherited from base image

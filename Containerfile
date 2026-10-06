@@ -7,9 +7,12 @@ LABEL org.opencontainers.image.authors="tgwolf@salishseawolf.com"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 1. Install dependencies, Node.js 20.x, and configure npm
+# 1. Install dependencies, Node.js 20.x, Podman (see "Podman config" comment
+#    below), and configure npm — one apt-get update/install pass for all of
+#    it, since a second update elsewhere would just re-fetch the same index
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends slirp4netns curl ca-certificates git && \
+    apt-get install -y --no-install-recommends \
+        slirp4netns curl ca-certificates git podman runc && \
     curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     # set npm prefix to avoid sudo
@@ -28,36 +31,27 @@ RUN curl https://mise.run | sh && \
 # tool calls, which don't source .bashrc or trigger the activate hook.
 ENV PATH=/root/.local/share/mise/shims:/root/.local/bin:$PATH
 
-# 2a. Configure mise globally
-RUN mkdir -p /root/.config/mise
-COPY config.toml /root/.config/mise/config.toml
-
-# 2b. Copy shell configuration and entrypoint
-COPY .bashrc /root/.bashrc
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
 # 3. Install Claude Code (no sudo)
 ARG CLAUDE_CODE_VERSION=latest
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
-# 4. Copy Claude Code agents (COPY creates the destination directory)
+# 4. Copy small, frequently-edited local files last (COPY creates destination
+#    directories on its own) so editing any one of them doesn't invalidate
+#    the apt/curl/npm layers above and force them to re-run.
+COPY config.toml /root/.config/mise/config.toml
+COPY .bashrc /root/.bashrc
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 COPY agents/mise.md /root/.claude/commands/
 
-# 5. Install Podman for nested image builds (e.g. testing this repo's own
-# Containerfiles from inside the running image). Configured with the vfs
-# storage driver and runc, matching the Gitea CI runner, so it runs
-# unprivileged with no extra host capabilities required.
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends podman runc && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN mkdir -p /etc/containers
+# Podman config: vfs storage driver + runc, matching the Gitea CI runner, so
+# nested builds (e.g. testing this repo's own Containerfiles from inside the
+# running image) work rootless with no extra host capabilities required.
 COPY containers/storage.conf /etc/containers/storage.conf
 COPY containers/containers.conf /etc/containers/containers.conf
 
 WORKDIR /workspace
 
-# 6. Entrypoint to pass through arguments, preserving env
+# 5. Entrypoint to pass through arguments, preserving env
 ENTRYPOINT ["/entrypoint.sh"]
 
