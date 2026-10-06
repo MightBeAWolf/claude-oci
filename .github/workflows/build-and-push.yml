@@ -38,14 +38,16 @@ jobs:
 
       # A `docker-container` buildx builder is required for the `gha` cache
       # backend below (the default `docker` driver only supports the
-      # `inline` cache exporter). That driver runs BuildKit in its own
-      # isolated container with no view of the host Docker Engine's image
-      # store, which would otherwise break the `FROM claude-code:...` chain
-      # below (buildx would try a registry pull instead of the locally
-      # `load: true`'d image). The `build-contexts` input on the two chained
-      # builds works around this: it's buildx's documented mechanism for
-      # pointing a `FROM` reference at an image already sitting in the local
-      # Docker Engine instead of resolving it remotely.
+      # `inline` cache exporter). It's only usable for the base image: that
+      # driver runs BuildKit in its own isolated container with no view of
+      # the host Docker Engine's image store, so a later `FROM
+      # claude-code:...` referencing a `load: true`'d local image fails as a
+      # registry pull instead (confirmed in CI — buildx's `build-contexts`
+      # `docker-image://` workaround for this does NOT help: it still
+      # resolves via registry rather than the engine's local store). The
+      # base image's `FROM debian:bookworm-slim` is a public image with no
+      # such local-chain dependency, so it's the only one of the three that
+      # can safely use this builder/cache combo.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -66,6 +68,14 @@ jobs:
       - name: Smoke test the base image
         run: docker run --rm claude-code:latest --version
 
+      # Switch back to the default (plain `docker`) builder for the rest of
+      # the chain: it builds directly against the Docker Engine, so it does
+      # see the `claude-code:latest` image `load: true`'d above. No GHA
+      # cache here — that backend needs the docker-container driver, which
+      # breaks this local-image resolution (see comment above).
+      - name: Switch to the default Docker builder
+        run: docker buildx use default
+
       - name: Build the Rust image
         uses: docker/build-push-action@v6
         with:
@@ -73,10 +83,6 @@ jobs:
           file: ./Containerfile.rust
           load: true
           tags: claude-code:rust
-          build-contexts: |
-            claude-code:latest=docker-image://claude-code:latest
-          cache-from: type=gha,scope=rust
-          cache-to: type=gha,mode=max,scope=rust
 
       - name: Smoke test the Rust image
         run: docker run --rm claude-code:rust --version
@@ -88,10 +94,6 @@ jobs:
           file: ./Containerfile.rust-wasm
           load: true
           tags: claude-code:rust-wasm
-          build-contexts: |
-            claude-code:rust=docker-image://claude-code:rust
-          cache-from: type=gha,scope=rust-wasm
-          cache-to: type=gha,mode=max,scope=rust-wasm
 
       - name: Smoke test the Rust + WASM image
         run: docker run --rm claude-code:rust-wasm --version
