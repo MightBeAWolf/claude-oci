@@ -36,8 +36,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      # Deliberately no docker/setup-buildx-action step: it creates a builder
+      # using the `docker-container` driver, which runs BuildKit in its own
+      # isolated container with no view of the host Docker Engine's image
+      # store. That breaks the `FROM claude-code:...` build chain below —
+      # buildx tries to resolve it as a registry pull instead of the
+      # `load: true` image from the previous step. Building against the
+      # engine's own default "docker" driver builder (i.e. not creating a
+      # buildx-container builder at all) keeps the image store shared.
 
       # Local tags are always "claude-code:*" regardless of this repo's own
       # name, because Containerfile.rust and Containerfile.rust-wasm hardcode
